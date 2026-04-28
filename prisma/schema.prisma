@@ -1,0 +1,61 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// KULLANICILAR (Öğrenci veya Eğitmen)
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  role      String   @default("STUDENT") // "STUDENT" veya "INSTRUCTOR"
+  createdAt DateTime @default(now())
+  
+  courses     Course[]     // Eğitmen ise oluşturduğu kurslar
+  enrollments Enrollment[] // Öğrenci ise kayıt olduğu kurslar
+}
+
+// KURSLAR
+model Course {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  instructorId String
+  instructor   User     @relation(fields: [instructorId], references: [id])
+  
+  lessons     Lesson[]
+  enrollments Enrollment[]
+}
+
+// DERSLER (Videolar / İçerikler)
+model Lesson {
+  id          String   @id @default(cuid())
+  title       String
+  videoUrl    String?  // Eğitimin video linki
+  content     String?  // Yazılı içerik
+  isPublished Boolean  @default(false)
+
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+}
+
+// KAYITLAR (Öğrencilerin Kurslara Katılımı)
+model Enrollment {
+  id        String   @id @default(cuid())
+  userId    String
+  courseId  String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+  course    Course   @relation(fields: [courseId], references: [id])
+
+  @@unique([userId, courseId]) // Bir öğrenci bir kursa sadece 1 kez kayıt olabilir
+}
